@@ -77,6 +77,34 @@ def get_article(id):
     return jsonify(article.to_dict()), 200
 
 
+def validate_article_data(data):
+    """
+    Validar datos de artículo antes de crear/actualizar
+    Retorna: (is_valid, error_message)
+    """
+    errors = []
+    
+    # Validación de código
+    if not data.get("code"):
+        errors.append("Código es requerido")
+    elif len(data.get("code", "").strip()) < 3:
+        errors.append("Código debe tener al menos 3 caracteres")
+    
+    # Validación de nombre
+    if not data.get("name"):
+        errors.append("Nombre es requerido")
+    elif len(data.get("name", "").strip()) < 3:
+        errors.append("Nombre debe tener al menos 3 caracteres")
+    
+    # Validación de stock
+    if "stock_min" in data and data["stock_min"] < 0:
+        errors.append("Stock mínimo no puede ser negativo")
+    if "stock_current" in data and data["stock_current"] < 0:
+        errors.append("Stock actual no puede ser negativo")
+    
+    return (len(errors) == 0, errors)
+
+
 @bp.route("/", methods=["POST"])
 def create_article():
     """
@@ -85,9 +113,10 @@ def create_article():
     """
     data = request.get_json()
 
-    # Validación básica
-    if not data.get("code") or not data.get("name"):
-        return jsonify({"error": "Código y nombre son requeridos"}), 400
+    # Validación mejorada
+    is_valid, errors = validate_article_data(data)
+    if not is_valid:
+        return jsonify({"errors": errors}), 400
 
     # Normalizar código (siempre en mayúsculas)
     code = data.get("code").strip().upper()
