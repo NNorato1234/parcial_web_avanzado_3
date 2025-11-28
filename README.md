@@ -16,29 +16,43 @@ Sistema web profesional para la gestión de inventario y documentación técnica
 ## 📋 Características
 
 ### 🔐 Sistema de Autenticación
-- Login con JWT (tokens de 24 horas)
-- Roles: **ADMIN** (gestión completa) y **USER** (operario, solo lectura)
-- Encriptación bcrypt para contraseñas
-- Redirección automática según rol
+- ✅ Login con JWT (tokens de 24 horas)
+- ✅ Roles: **ADMIN** (gestión completa) y **USER** (operario, solo lectura)
+- ✅ Encriptación bcrypt para contraseñas
+- ✅ Redirección automática según rol
+- 🆕 **Protección contra fuerza bruta** - Bloqueo temporal tras 5 intentos fallidos
+- 🆕 **Logging de seguridad** - Registro de todos los eventos de autenticación
 
 ### 📦 Gestión de Inventario
-- **Administrador**: CRUD completo de artículos (código, nombre, tipo, cantidad, ubicación, stock mínimo)
-- **Operario**: Vista de solo lectura del inventario con DataTables
-- Filtros y búsqueda avanzada
-- Exportación a CSV/Excel
+- ✅ **Administrador**: CRUD completo de artículos (código, nombre, tipo, cantidad, ubicación, stock mínimo)
+- ✅ **Operario**: Vista de solo lectura del inventario con DataTables
+- ✅ Filtros y búsqueda avanzada
+- ✅ Exportación a CSV/Excel
+- 🆕 **Validación mejorada** - Validaciones robustas en creación de artículos
+- 🆕 **Nuevos campos** - acquisition_date, observations, tipo
 
 ### 📝 Sistema de Reportes
-- **4 Tipos de Reportes**: Falla, Mantenimiento, Observación, Solicitud
-- **4 Estados**: Pendiente, En Revisión, Resuelto, Cerrado
-- Operarios crean reportes sobre equipos específicos
-- Administradores gestionan y responden reportes
-- Historial completo con timestamps
+- ✅ **4 Tipos de Reportes**: Falla, Mantenimiento, Observación, Solicitud
+- ✅ **4 Estados**: Pendiente, En Revisión, Resuelto, Cerrado
+- ✅ Operarios crean reportes sobre equipos específicos
+- ✅ Administradores gestionan y responden reportes
+- ✅ Historial completo con timestamps
+- 🆕 **Estadísticas en tiempo real** - Análisis de reportes y tasa de respuesta
 
 ### 👥 Gestión de Usuarios (Admin)
-- Crear/editar/eliminar usuarios
-- Asignación de roles
-- Búsqueda y filtros
-- Interfaz con DataTables
+- ✅ Crear/editar/eliminar usuarios
+- ✅ Asignación de roles
+- ✅ Búsqueda y filtros
+- ✅ Interfaz con DataTables
+- 🆕 **Búsqueda avanzada** - Buscar por username, email o nombre completo
+- 🆕 **Filtros por rol y estado** - Consultas complejas de usuarios
+
+### 📊 Monitoreo del Sistema (NEW)
+- 🆕 Health check básico (`/api/health/`)
+- 🆕 Salud de base de datos con estadísticas (`/api/health/db`)
+- 🆕 Monitoreo detallado con métricas (`/api/health/detailed`)
+- 🆕 Actividad de últimas 24 horas
+- 🆕 Estados del servicio (HEALTHY, DEGRADED, UNHEALTHY)
 
 ## 🚀 Stack Tecnológico
 
@@ -79,10 +93,12 @@ Sis.Inventary/
 │   │   ├── article.py         # Modelo Artículo
 │   │   └── report.py          # Modelo Reporte
 │   ├── routes/
-│   │   ├── auth_routes.py     # Login/Registro
-│   │   ├── users_routes.py    # CRUD Usuarios
-│   │   ├── articles_routes.py # CRUD Inventario
-│   │   ├── report_routes.py   # CRUD Reportes
+│   │   ├── auth_routes.py     # Login/Registro + Brute-force protection
+│   │   ├── users_routes.py    # CRUD Usuarios + Búsqueda avanzada
+│   │   ├── article_routes.py  # CRUD Inventario + Validación mejorada
+│   │   ├── report_routes.py   # CRUD Reportes + Estadísticas
+│   │   ├── health_routes.py   # Health checks + Monitoreo
+│   │   ├── admin_tools.py     # Herramientas administrativas
 │   │   └── main_routes.py     # Rutas frontend
 │   └── app.py                 # Aplicación Flask
 ├── frontend/
@@ -96,32 +112,46 @@ Sis.Inventary/
 │   │   └── clear-session.html # Limpiar sesión
 │   └── static/
 │       ├── css/
-│       │   └── styles.css     # Estilos globales
+│       │   ├── dashboard.css
+│       │   ├── datatable.css
+│       │   ├── global.css
+│       │   ├── modal.css
+│       │   └── styles.css
 │       └── js/
 │           ├── api.js         # Cliente API REST
 │           ├── auth.js        # Utilidades autenticación
 │           ├── dashboard-admin.js
 │           ├── dashboard-operario.js
+│           ├── reports-management.js
 │           ├── users-management.js
-│           └── reports-management.js
+│           └── utils.js
 ├── database/
-│   └── init.sql               # Schema + datos de prueba
+│   ├── init.sql               # Inicialización completa
+│   ├── schema.sql             # Schema con índices optimizados
+│   ├── insert_data.sql        # Datos de prueba
+│   ├── update_articles.sql    # Migraciones
+│   └── users_schema.sql       # Schema de usuarios
 ├── tests/
 │   ├── __init__.py
-│   └── test_health.py         # Tests básicos
+│   └── test_health.py         # Tests de salud del sistema
 ├── .github/
 │   └── workflows/
-│       └── ci-cd.yml          # Pipeline CI/CD
-├── Dockerfile                 # Imagen Docker
-├── docker-compose.yml         # Orquestación
-├── railway.json               # Config Railway
-├── runtime.txt                # Python 3.11
+│       └── ci-cd.yml          # Pipeline CI/CD automatizado
+├── Dockerfile                 # Imagen Docker multi-stage
+├── docker-compose.yml         # Orquestación con MySQL
+├── .env.example               # Variables de entorno ejemplo
+├── .env                       # Variables de entorno local
+├── .dockerignore              # Archivos ignorados en Docker
+├── .gitignore                 # Archivos ignorados en Git
+├── runtime.txt                # Especificación Python 3.11
 ├── requirements.txt           # Dependencias Python
-├── .dockerignore
-├── .gitignore
+├── Procfile                   # Configuración Procfile
+├── create_admin.py            # Script para crear admin
+├── run.py                     # Punto de entrada
+├── CHANGELOG.md               # Registro de cambios v1.0.0
 ├── DEPLOYMENT.md              # Guía de despliegue
 ├── DEVOPS_SETUP.md            # Documentación DevOps
-└── README.md
+└── README.md                  # Este archivo
 ```
 
 ## ⚙️ Instalación y Ejecución
