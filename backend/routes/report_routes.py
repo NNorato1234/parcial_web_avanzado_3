@@ -301,3 +301,30 @@ def delete_report(current_user, report_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({"message": f"Error al eliminar reporte: {str(e)}"}), 500
+
+
+@bp.route("/statistics", methods=["GET"])
+@admin_required
+def get_report_statistics(current_user):
+    """Obtiene estadísticas de reportes"""
+    try:
+        total_reports = Report.query.count()
+        
+        # Contar por estado
+        status_counts = {}
+        for status in ["PENDIENTE", "EN_REVISION", "RESUELTO", "CERRADO"]:
+            status_counts[status] = Report.query.filter_by(status=status).count()
+        
+        # Contar por tipo
+        type_counts = {}
+        for report_type in ["FALLA", "MANTENIMIENTO", "OBSERVACION", "SOLICITUD"]:
+            type_counts[report_type] = Report.query.filter_by(report_type=report_type).count()
+        
+        return jsonify({
+            "total_reports": total_reports,
+            "by_status": status_counts,
+            "by_type": type_counts,
+            "response_rate": f"{((status_counts.get('RESUELTO', 0) + status_counts.get('CERRADO', 0)) / max(total_reports, 1) * 100):.1f}%"
+        }), 200
+    except Exception as e:
+        return jsonify({"message": f"Error al obtener estadísticas: {str(e)}"}), 500
