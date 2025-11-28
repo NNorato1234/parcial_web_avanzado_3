@@ -13,16 +13,22 @@ CREATE TABLE IF NOT EXISTS articles (
     code VARCHAR(50) NOT NULL UNIQUE,
     name VARCHAR(200) NOT NULL,
     description TEXT,
+    tipo VARCHAR(50),
     category VARCHAR(100),
     unit VARCHAR(50) DEFAULT 'unidad',
     stock_min INT DEFAULT 0,
     stock_current INT DEFAULT 0,
     location VARCHAR(100),
     status VARCHAR(20) DEFAULT 'ACTIVO',
+    acquisition_date DATE,
+    observations TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_code (code),
     INDEX idx_category (category),
-    INDEX idx_status (status)
+    INDEX idx_status (status),
+    INDEX idx_location (location),
+    INDEX idx_tipo (tipo),
+    INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
