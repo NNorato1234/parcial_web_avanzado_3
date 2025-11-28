@@ -9,9 +9,39 @@ from flask_bcrypt import Bcrypt
 import jwt
 import os
 from datetime import datetime, timedelta
+import logging
+
+# Configurar logging
+logger = logging.getLogger(__name__)
 
 bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 bcrypt = Bcrypt()
+
+# Rastreador de intentos fallidos (en producción usar Redis)
+failed_login_attempts = {}
+
+
+def track_failed_login(username):
+    """Rastrear intentos de login fallidos por seguridad"""
+    if username not in failed_login_attempts:
+        failed_login_attempts[username] = {"count": 0, "timestamp": datetime.utcnow()}
+    
+    attempts = failed_login_attempts[username]
+    # Reset si pasó más de 15 minutos
+    if (datetime.utcnow() - attempts["timestamp"]).seconds > 900:
+        failed_login_attempts[username] = {"count": 0, "timestamp": datetime.utcnow()}
+    
+    attempts["count"] += 1
+    return attempts["count"]
+
+
+def is_account_locked(username):
+    """Verificar si la cuenta está temporalmente bloqueada"""
+    if username in failed_login_attempts:
+        attempts = failed_login_attempts[username]
+        if attempts["count"] >= 5:
+            return (datetime.utcnow() - attempts["timestamp"]).seconds < 900
+    return False
 
 
 @bp.route("/login", methods=["POST"])
@@ -26,22 +56,42 @@ def login():
     if not data.get("username") or not data.get("password"):
         return jsonify({"error": "Usuario y contraseña requeridos"}), 400
 
+    username = data["username"]
+    
+    # Verificar si la cuenta está bloqueada por intentos fallidos
+    if is_account_locked(username):
+        logger.warning(f"Intento de login a cuenta bloqueada: {username}")
+        return jsonify({"error": "Cuenta temporalmente bloqueada. Intente en 15 minutos"}), 429
+
     # Buscar usuario
-    user = User.query.filter_by(username=data["username"]).first()
+    user = User.query.filter_by(username=username).first()
 
     if not user:
+        attempt_count = track_failed_login(username)
+        logger.warning(f"Intento de login fallido para usuario no existente: {username} (intento {attempt_count})")
         return jsonify({"error": "Usuario o contraseña incorrectos"}), 401
 
     # Verificar contraseña
     if not bcrypt.check_password_hash(user.password_hash, data["password"]):
+        attempt_count = track_failed_login(username)
+        logger.warning(f"Intento de login fallido para {username} - contraseña incorrecta (intento {attempt_count})")
+        if attempt_count >= 5:
+            return jsonify({"error": "Demasiados intentos fallidos. Cuenta bloqueada 15 minutos"}), 429
         return jsonify({"error": "Usuario o contraseña incorrectos"}), 401
 
     if user.status != "ACTIVO":
+        logger.warning(f"Intento de login con usuario inactivo: {username}")
         return jsonify({"error": "Usuario inactivo"}), 403
+
+    # Limpiar intentos fallidos al login exitoso
+    if username in failed_login_attempts:
+        del failed_login_attempts[username]
 
     # Actualizar ultimo login
     user.last_login = datetime.utcnow()
     db.session.commit()
+    
+    logger.info(f"Login exitoso para usuario: {username}")
 
     # Generar token JWT
     token = jwt.encode(
