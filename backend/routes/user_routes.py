@@ -40,13 +40,39 @@ def get_all_users():
     """
     GET /api/users/
     Obtener todos los usuarios (solo admin)
+    Query params: search, role, status
     """
     payload, error_response, status_code = verify_admin_token()
     if error_response:
         return error_response, status_code
 
-    users = User.query.all()
-    return jsonify([user.to_dict() for user in users]), 200
+    # Parámetros de filtrado
+    search_query = request.args.get("search", "").lower()
+    role_filter = request.args.get("role")
+    status_filter = request.args.get("status")
+    
+    query = User.query
+    
+    # Aplicar filtros
+    if search_query:
+        query = query.filter(
+            (User.username.ilike(f"%{search_query}%")) |
+            (User.full_name.ilike(f"%{search_query}%")) |
+            (User.email.ilike(f"%{search_query}%"))
+        )
+    
+    if role_filter:
+        query = query.filter_by(role=role_filter)
+    
+    if status_filter:
+        query = query.filter_by(status=status_filter)
+    
+    users = query.order_by(User.created_at.desc()).all()
+    
+    return jsonify({
+        "total": len(users),
+        "users": [user.to_dict() for user in users]
+    }), 200
 
 
 @bp.route("/<int:id>", methods=["GET"])
